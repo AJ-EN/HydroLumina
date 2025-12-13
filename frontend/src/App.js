@@ -201,9 +201,10 @@ const App = () => {
         {/* MAP VIEWPORT */}
         <main className="viewport">
           <iframe
-            src="/map.html"
+            src={leakMode ? "/map_leak.html" : "/map_normal.html"}
             title="Kepler Map"
             className="map-frame"
+            key={leakMode ? 'leak' : 'normal'}  // Force re-render on mode change
           />
 
           {/* INTELLIGENCE DOSSIER (Overlay) */}
