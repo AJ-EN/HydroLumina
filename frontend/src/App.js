@@ -160,7 +160,7 @@ const App = () => {
         {/* LEFT INTELLIGENCE PANEL */}
         <aside className="intel-panel">
 
-          <div className="panel-header">// REAL-TIME TELEMETRY</div>
+          <div className="panel-header">{/* REAL-TIME TELEMETRY */}</div>
 
           <div className="data-section">
             <div className="metric-row">
@@ -222,7 +222,7 @@ const App = () => {
             </div>
           </div>
 
-          <div className="panel-header">// SENSOR NETWORK</div>
+          <div className="panel-header">{/* SENSOR NETWORK */}</div>
           <div className="data-section" style={{ flex: 1 }}>
             <div className="metric-row">
               <span className="metric-label">ISRO_NISAR_LINK</span>
@@ -247,7 +247,7 @@ const App = () => {
           </div>
 
           {/* AI LOGIC KERNEL - First Principle Defense Display */}
-          <div className="panel-header">// AI LOGIC KERNEL</div>
+          <div className="panel-header">{/* AI LOGIC KERNEL */}</div>
           <div className="data-section" style={{ padding: '10px', background: '#050505' }}>
             <div style={{ marginBottom: '8px', fontSize: '10px', color: '#888' }}>
               WEATHER FILTER: <span style={{ color: weatherMode === 'RAIN' ? '#4ade80' : '#666' }}>{weatherMode}</span>
@@ -300,7 +300,7 @@ const App = () => {
           {isScanning && !selectedUser && (
             <div className={`dossier-card scanning-card`}>
               <div className="dossier-header">
-                <span>// SCANNING NETWORK</span>
+                <span>{/* SCANNING NETWORK */}</span>
                 <div className="spinner"></div>
               </div>
               <div className="dossier-body" style={{ textAlign: 'center', padding: '30px' }}>
@@ -318,7 +318,7 @@ const App = () => {
           {selectedUser && (
             <div className="dossier-card">
               <div className="dossier-header">
-                <span>// PRIORITY ALERT DETECTED</span>
+                <span>{/* PRIORITY ALERT DETECTED */}</span>
                 <span style={{ fontSize: '10px' }}>Lv.1 CRITICAL</span>
               </div>
               <div className="dossier-body">
