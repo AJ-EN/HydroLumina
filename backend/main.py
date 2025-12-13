@@ -26,6 +26,9 @@ except Exception as e:
     df_energy = pd.DataFrame()
     users_data = []
 
+# Tank level simulation state (percentage full)
+current_tank_level = 50.0
+
 # --- 1. THE PHYSICS ENGINE (NILM Logic) ---
 def calculate_water_flow(power_kw: float, efficiency_drop: bool = False):
     """
@@ -33,25 +36,37 @@ def calculate_water_flow(power_kw: float, efficiency_drop: bool = False):
     
     Pe: Power in Watts
     n (eta): Pump Efficiency (0.75 normal, 0.55 if leaking/cavitation)
-    rho: Density (1000 kg/m3)
+    rho: Density (1000 kg/m³)
     g: Gravity (9.81 m/s²)
-    H: Dynamic Head (varies with tank level and flow conditions)
+    H: Dynamic Head (varies with tank level - KEY PHYSICS!)
+    
+    Hydraulic Reality:
+    - As tank fills, Head (H) increases → pump works harder against gravity
+    - Flow rate DECREASES as Head increases (pump curve characteristic)
+    - This is the Affinity Law in action
     """
+    global current_tank_level
+    
     if power_kw < 5.0: return 0.0  # Ignore standby noise
     
     efficiency = 0.55 if efficiency_drop else 0.75
     rho = 1000  # kg/m³
     g = 9.81    # m/s²
     
-    # DYNAMIC HEAD CALCULATION
-    # Head varies based on tank fill level and system pressure dynamics
-    # Using sinusoidal variation to simulate tank level changes
-    base_head = 30  # meters (static head)
-    tank_variation = math.sin(power_kw * 0.1) * 2  # ±2m based on flow rate
-    friction_loss = random.uniform(0.5, 1.5)  # Pipe friction losses
-    dynamic_head = base_head + tank_variation + friction_loss
+    # DYNAMIC TANK LEVEL SIMULATION
+    # Tank fills progressively (simulates real operation)
+    current_tank_level = (current_tank_level + 0.5) % 100  # Cycles 0-100%
     
-    # Flow (m³/s) = (Power_kW * 1000 * efficiency) / (rho * g * H)
+    # DYNAMIC HEAD CALCULATION
+    # Head ranges from 30m (empty tank) to 45m (full tank)
+    # This follows the Total Dynamic Head (TDH) equation
+    static_head = 30  # meters (elevation difference)
+    tank_head = (current_tank_level / 100) * 15  # 0-15m based on tank level
+    friction_loss = random.uniform(0.5, 1.5)  # Pipe friction (Darcy-Weisbach)
+    
+    dynamic_head = static_head + tank_head + friction_loss
+    
+    # Flow DECREASES as Head increases (Pump Affinity Law!)
     flow_m3_s = (power_kw * 1000 * efficiency) / (rho * g * dynamic_head)
     
     # Convert to Liters per Minute (LPM)

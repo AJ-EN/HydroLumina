@@ -54,7 +54,13 @@ const App = () => {
           status: "CRITICAL_PRESSURE_DROP",
           last_update: "T-MINUS 00:02:00",
           family_members: 6,
-          water_usage: "450 L/DAY"
+          water_usage: "450 L/DAY",
+          // BSR (Basic Schedule of Rates) Integration
+          bsr_code: "PHED-2024-Item-4.2",
+          bsr_description: "Pipe Repair > 100mm DI",
+          est_cost: "₹ 12,450",
+          contractor: "L&T Civil (Auto-Assigned)",
+          repair_priority: "P1 - IMMEDIATE"
         });
       }, 1500);
       return () => clearTimeout(timer);
@@ -78,6 +84,10 @@ const App = () => {
           <span className="brand-title">HYDRO<span style={{ color: 'var(--accent-cyan)' }}>LUMINA</span></span>
           <span className="mission-tag">OP: WATER_SECURITY</span>
           <span className="mission-tag">LOC: JAIPUR_GRID</span>
+          {/* Edge Compute Mode Indicator */}
+          <span className="mission-tag" style={{ color: '#4ade80', borderColor: '#4ade80' }}>
+            ● EDGE_COMPUTE
+          </span>
         </div>
         <div className="status-indicator">
           <span>SYS: {isConnected ? 'ONLINE' : 'OFFLINE'}</span>
@@ -221,21 +231,54 @@ const App = () => {
                   <span className="dossier-data">{selectedUser.family_members} MEMBERS</span>
                 </div>
                 <div className="dossier-row">
-                  <span className="dossier-label">AVG_USAGE</span>
-                  <span className="dossier-data">{selectedUser.water_usage}</span>
-                </div>
-                <div className="dossier-row">
                   <span className="dossier-label">STATUS</span>
                   <span className="dossier-data" style={{ color: 'var(--accent-alert)' }}>
                     {selectedUser.status}
                   </span>
                 </div>
-                <div className="dossier-row">
-                  <span className="dossier-label">LAST_UPDATE</span>
-                  <span className="dossier-data">{selectedUser.last_update}</span>
+
+                {/* BSR COST ESTIMATION SECTION */}
+                <div style={{
+                  marginTop: '12px',
+                  paddingTop: '12px',
+                  borderTop: '1px dashed var(--border-dim)',
+                  background: 'rgba(0,242,255,0.03)'
+                }}>
+                  <div style={{ fontSize: '9px', color: 'var(--accent-cyan)', marginBottom: '8px' }}>
+                    // BSR AUTO-COSTING MODULE
+                  </div>
+                  <div className="dossier-row">
+                    <span className="dossier-label">BSR_CODE</span>
+                    <span className="dossier-data" style={{ color: 'var(--accent-amber)' }}>
+                      {selectedUser.bsr_code}
+                    </span>
+                  </div>
+                  <div className="dossier-row">
+                    <span className="dossier-label">DESCRIPTION</span>
+                    <span className="dossier-data" style={{ fontSize: '10px' }}>
+                      {selectedUser.bsr_description}
+                    </span>
+                  </div>
+                  <div className="dossier-row">
+                    <span className="dossier-label">EST_COST</span>
+                    <span className="dossier-data" style={{ color: '#4ade80', fontSize: '14px' }}>
+                      {selectedUser.est_cost}
+                    </span>
+                  </div>
+                  <div className="dossier-row">
+                    <span className="dossier-label">CONTRACTOR</span>
+                    <span className="dossier-data">{selectedUser.contractor}</span>
+                  </div>
+                  <div className="dossier-row">
+                    <span className="dossier-label">PRIORITY</span>
+                    <span className="dossier-data" style={{ color: 'var(--accent-alert)' }}>
+                      {selectedUser.repair_priority}
+                    </span>
+                  </div>
                 </div>
-                <button className="btn-action">
-                  AUTHORIZE DBT REFUND PROTOCOL
+
+                <button className="btn-action" style={{ marginTop: '15px' }}>
+                  AUTHORIZE DBT REFUND + DISPATCH REPAIR
                 </button>
               </div>
             </div>
