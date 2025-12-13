@@ -246,7 +246,7 @@ const App = () => {
                   background: 'rgba(0,242,255,0.03)'
                 }}>
                   <div style={{ fontSize: '9px', color: 'var(--accent-cyan)', marginBottom: '8px' }}>
-                    // BSR AUTO-COSTING MODULE
+                    {/* BSR AUTO-COSTING MODULE */}
                   </div>
                   <div className="dossier-row">
                     <span className="dossier-label">BSR_CODE</span>
