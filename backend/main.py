@@ -21,6 +21,7 @@ import numpy as np
 from pathlib import Path
 from typing import Optional
 from sklearn.ensemble import IsolationForest
+import networkx as nx
 import json
 import math
 
@@ -70,6 +71,9 @@ training_features = ['power_kw', 'voltage_v', 'current_a', 'power_factor']
 
 # Leak location from satellite data (loaded at startup)
 leak_location = {"lat": 26.9144, "lon": 75.7833}  # Default from satellite.json
+
+# Network graph for pipe simulation (loaded on first request)
+network_graph = None
 
 
 def initialize_model():
@@ -222,6 +226,30 @@ def detect_anomalies(df: pd.DataFrame) -> pd.DataFrame:
     df['anomaly_score'] = anomaly_model.decision_function(features)
     
     return df
+
+# =============================================================================
+# PIPE NETWORK UTILITIES
+# =============================================================================
+
+def get_network_graph():
+    """
+    Load and cache the network graph from GraphML file.
+    Returns empty graph if file not found.
+    """
+    global network_graph
+    
+    if network_graph is None:
+        try:
+            network_graph = nx.read_graphml(DATA_DIR / "network.graphml")
+            print(f"   🔧 Network graph loaded: {network_graph.number_of_nodes()} nodes, {network_graph.number_of_edges()} pipes")
+        except FileNotFoundError:
+            print("   ⚠️  network.graphml not found - pipe simulation disabled")
+            network_graph = nx.Graph()  # Empty fallback
+        except Exception as e:
+            print(f"   ⚠️  Error loading network: {e}")
+            network_graph = nx.Graph()
+    
+    return network_graph
 
 
 # =============================================================================
@@ -527,6 +555,186 @@ async def get_satellite_zones():
         return satellite_data
     except FileNotFoundError:
         return {"error": "Satellite data not found."}
+
+
+@app.get("/pipe-network")
+async def get_pipe_network(leak_mode: bool = Query(default=False)):
+    """
+    Returns the Pipe Network as GeoJSON with Real-Time Hydraulic Data.
+    
+    First Principle: Flow in Pipe ~ Power at Pump
+    
+    Args:
+        leak_mode: If True, simulates leak at J5 with pressure drop
+    
+    Returns:
+        GeoJSON FeatureCollection with pipe LineStrings and infrastructure nodes
+    """
+    G = get_network_graph()
+    
+    # Handle empty graph (file not found)
+    if G.number_of_nodes() == 0:
+        return {
+            "type": "FeatureCollection",
+            "features": [],
+            "nodes": [],
+            "error": "Network data not available. Run data_factory.py to generate."
+        }
+    
+    # Get current "Virtual Flow" from our Energy-Water Proxy
+    current_power = 75.0 if leak_mode else 45.0
+    flow_data = calculate_water_flow(current_power, leak_mode)
+    base_flow = flow_data['flow_lpm']
+    
+    pipe_features = []
+    node_features = []
+    
+    # =========================================================================
+    # NODE EXTRACTION - Infrastructure Points (Reservoir, Pump, Tank, Junction)
+    # =========================================================================
+    for node_id, node_data in G.nodes(data=True):
+        if 'latitude' not in node_data or 'longitude' not in node_data:
+            continue
+            
+        node_type = node_data.get('node_type', 'junction')
+        is_leak_node = leak_mode and 'J5' in str(node_id)
+        
+        # Determine node styling based on type
+        if node_type == 'reservoir':
+            icon = "💧"
+            color = "#3b82f6"  # Blue
+            size = 16
+        elif node_type == 'pump':
+            icon = "⚡"
+            color = "#f59e0b"  # Amber
+            size = 14
+        elif node_type == 'tank':
+            icon = "🏛️"
+            color = "#8b5cf6"  # Purple
+            size = 14
+        else:  # junction
+            icon = "⊕" if is_leak_node else "○"
+            color = "#ff2a2a" if is_leak_node else "#00f2ff"
+            size = 10 if is_leak_node else 8
+        
+        node_features.append({
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    float(node_data.get('longitude', 0)),
+                    float(node_data.get('latitude', 0))
+                ]
+            },
+            "properties": {
+                "node_id": str(node_id),
+                "node_type": node_type,
+                "name": node_data.get('name', str(node_id)),
+                "elevation": float(node_data.get('elevation', 0)),
+                "icon": icon,
+                "color": color,
+                "size": size,
+                "is_leak": is_leak_node,
+                "demand_lps": float(node_data.get('demand', 0))
+            }
+        })
+    
+    # =========================================================================
+    # PIPE EXTRACTION - With Enhanced Physics Simulation
+    # =========================================================================
+    for u, v, data in G.edges(data=True):
+        node_u = G.nodes[u]
+        node_v = G.nodes[v]
+        
+        if 'latitude' not in node_u or 'longitude' not in node_u:
+            continue
+        if 'latitude' not in node_v or 'longitude' not in node_v:
+            continue
+        
+        # Get pipe properties
+        diameter = float(data.get('diameter', 100))
+        length = float(data.get('length', 0))
+        
+        # Calculate physics-based properties
+        pressure_loss = 0.0
+        status = "NORMAL"
+        flow_velocity = 1.0  # m/s base velocity
+        
+        # Determine pipe category for styling
+        if diameter >= 400:
+            pipe_class = "MAIN"
+            base_weight = 6
+        elif diameter >= 200:
+            pipe_class = "SECONDARY"
+            base_weight = 4
+        else:
+            pipe_class = "DISTRIBUTION"
+            base_weight = 2
+        
+        # Leak simulation physics
+        if leak_mode and ('J5' in str(u) or 'J5' in str(v)):
+            status = "CRITICAL"
+            pressure_loss = 0.8
+            flow_velocity = 0.2  # Slow flow at leak
+        elif leak_mode:
+            # Calculate distance-based pressure redistribution
+            status = "REDUCED"
+            pressure_loss = 0.15 + (0.1 * (1 - diameter / 500))  # Smaller pipes affected more
+            flow_velocity = 0.7
+        
+        pipe_flow = base_flow * (1 - pressure_loss)
+        
+        # Color based on status and pipe class
+        if status == "CRITICAL":
+            color = "#ff2a2a"
+            glow = True
+        elif status == "REDUCED":
+            color = "#ffaa00"
+            glow = False
+        else:
+            # Gradient based on pipe class
+            color = "#00f2ff" if pipe_class == "MAIN" else "#00d4aa" if pipe_class == "SECONDARY" else "#00b8d4"
+            glow = False
+        
+        pipe_features.append({
+            "type": "Feature",
+            "geometry": {
+                "type": "LineString",
+                "coordinates": [
+                    [float(node_u.get('longitude', 0)), float(node_u.get('latitude', 0))],
+                    [float(node_v.get('longitude', 0)), float(node_v.get('latitude', 0))]
+                ]
+            },
+            "properties": {
+                "pipe_id": data.get('pipe_id', f"{u}-{v}"),
+                "from_node": str(u),
+                "to_node": str(v),
+                "pipe_class": pipe_class,
+                "diameter_mm": diameter,
+                "length_m": round(length, 1),
+                "flow_lpm": round(pipe_flow, 1),
+                "flow_velocity": round(flow_velocity, 2),
+                "pressure_loss_pct": round(pressure_loss * 100, 0),
+                "status": status,
+                "color": color,
+                "weight": base_weight if status != "CRITICAL" else base_weight + 2,
+                "glow": glow,
+                "animated": status != "CRITICAL"  # Animate flow except on broken pipes
+            }
+        })
+    
+    return {
+        "type": "FeatureCollection",
+        "features": pipe_features,
+        "nodes": node_features,
+        "meta": {
+            "total_pipes": len(pipe_features),
+            "total_nodes": len(node_features),
+            "leak_mode": leak_mode,
+            "base_flow_lpm": base_flow,
+            "system_efficiency": flow_data['efficiency']
+        }
+    }
 
 
 # =============================================================================
