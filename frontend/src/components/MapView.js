@@ -135,13 +135,7 @@ const MapView = ({ leakMode, onUserSelect }) => {
     }, [onUserSelect, leakMode, leakLocation]);
 
     return (
-        <div style={{
-            width: '100%',
-            height: '100%',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            border: '1px solid var(--border-dim)'
-        }}>
+        <div style={{ width: '100%', height: '100%' }}>
             <MapContainer
                 center={[26.9124, 75.7873]}
                 zoom={14}

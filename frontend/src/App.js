@@ -235,13 +235,15 @@ const App = () => {
 
         {/* MAP VIEWPORT */}
         <main className="viewport">
-          <MapView
-            leakMode={leakMode}
-            onUserSelect={(user) => {
-              // Direct map click → dossier update
-              setSelectedUser(user);
-            }}
-          />
+          {/* Map wrapper - isolated from overlay cards */}
+          <div className="map-wrapper">
+            <MapView
+              leakMode={leakMode}
+              onUserSelect={(user) => {
+                setSelectedUser(user);
+              }}
+            />
+          </div>
 
           {/* SCANNING INDICATOR */}
           {isScanning && !selectedUser && (

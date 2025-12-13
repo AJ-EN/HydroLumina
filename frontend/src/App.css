@@ -12,6 +12,10 @@
   --text-dim: #666;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   background-color: var(--bg-core);
@@ -21,15 +25,20 @@ body {
   font-size: 12px;
 }
 
-/* --- LAYOUT GRID --- */
+/* ===========================================
+   LAYOUT GRID
+   =========================================== */
 .app-container {
   display: grid;
   grid-template-rows: 40px 1fr;
   height: 100vh;
   width: 100vw;
+  overflow: hidden;
 }
 
-/* --- HEADER BAR --- */
+/* ===========================================
+   HEADER BAR
+   =========================================== */
 .top-bar {
   border-bottom: 1px solid var(--border-dim);
   display: flex;
@@ -37,6 +46,7 @@ body {
   padding: 0 20px;
   background: var(--bg-panel);
   justify-content: space-between;
+  z-index: 100;
 }
 
 .brand-section {
@@ -75,19 +85,26 @@ body {
   animation: blinker 2s linear infinite;
 }
 
-/* --- MAIN CONTENT AREA --- */
+/* ===========================================
+   MAIN CONTENT AREA
+   =========================================== */
 .main-grid {
   display: grid;
   grid-template-columns: 320px 1fr;
   height: 100%;
+  overflow: hidden;
 }
 
-/* --- SIDEBAR INTELLIGENCE PANEL --- */
+/* ===========================================
+   SIDEBAR INTELLIGENCE PANEL
+   =========================================== */
 .intel-panel {
   border-right: 1px solid var(--border-dim);
   background: var(--bg-core);
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .panel-header {
@@ -98,11 +115,13 @@ body {
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 1px;
+  flex-shrink: 0;
 }
 
 .data-section {
   padding: 15px;
   border-bottom: 1px solid var(--border-dim);
+  flex-shrink: 0;
 }
 
 .metric-row {
@@ -137,7 +156,6 @@ body {
   border: 1px solid var(--border-dim);
   background: #080808;
   position: relative;
-  box-sizing: border-box;
 }
 
 /* Palantir Corners for Charts */
@@ -156,10 +174,13 @@ body {
   pointer-events: none;
 }
 
-/* --- ACTION BUTTON --- */
+/* ===========================================
+   ACTION BUTTON
+   =========================================== */
 .action-area {
   margin-top: auto;
   padding: 20px;
+  flex-shrink: 0;
 }
 
 .btn-primary {
@@ -174,6 +195,7 @@ body {
   transition: all 0.2s;
   text-transform: uppercase;
   letter-spacing: 1px;
+  font-size: 11px;
 }
 
 .btn-primary:hover {
@@ -190,28 +212,33 @@ body {
   animation: alertPulse 1.5s ease-in-out infinite;
 }
 
-/* --- MAP VIEWPORT --- */
+/* ===========================================
+   MAP VIEWPORT - CRITICAL LAYOUT
+   =========================================== */
 .viewport {
   position: relative;
   background: #000;
+  overflow: hidden;
+  /* CRITICAL: Create stacking context */
+  isolation: isolate;
 }
 
-.map-frame {
-  width: 100%;
-  height: 100%;
-  border: none;
+/* Map wrapper - dedicated container for Leaflet */
+.map-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
 }
 
-/* MapView container fills viewport */
-.viewport > div {
-  width: 100%;
-  height: 100%;
-}
-
-/* Leaflet specific overrides */
+/* Leaflet container styling */
 .leaflet-container {
   background: #0a0a0a !important;
   font-family: 'JetBrains Mono', monospace;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .leaflet-control-attribution {
@@ -225,8 +252,7 @@ body {
   color: #888 !important;
 }
 
-
-/* --- SCANLINE OVERLAY --- */
+/* Scanline overlay */
 .viewport::before {
   content: "";
   position: absolute;
@@ -242,18 +268,20 @@ body {
     rgba(0, 0, 0, 0.03) 4px
   );
   pointer-events: none;
-  z-index: 1;
+  z-index: 500;
 }
 
-/* --- INTELLIGENCE DOSSIER (THE CARD) --- */
+/* ===========================================
+   INTELLIGENCE DOSSIER CARD
+   =========================================== */
 .dossier-card {
   position: absolute;
   top: 15px;
   right: 15px;
-  width: 300px;
-  max-height: calc(100vh - 100px);
+  width: 280px;
+  max-height: calc(100% - 30px);
   overflow-y: auto;
-  background: rgba(8, 8, 12, 0.88);
+  background: rgba(8, 8, 12, 0.92);
   border: 1px solid rgba(255, 42, 42, 0.3);
   border-radius: 8px;
   backdrop-filter: blur(16px);
@@ -262,7 +290,7 @@ body {
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(255, 255, 255, 0.05) inset,
-    0 0 40px rgba(255, 42, 42, 0.1);
+    0 0 30px rgba(255, 42, 42, 0.08);
   animation: slideInSmooth 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 1000;
   scrollbar-width: thin;
@@ -278,15 +306,16 @@ body {
   border-radius: 2px;
 }
 
-/* Blueprint corners for dossier */
+/* Blueprint corners */
 .dossier-card::before,
 .dossier-card::after {
   content: "";
   position: absolute;
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border: 1px solid var(--accent-alert);
   pointer-events: none;
+  z-index: 1;
 }
 
 .dossier-card::before {
@@ -306,9 +335,9 @@ body {
 }
 
 .dossier-header {
-  background: linear-gradient(135deg, rgba(255, 42, 42, 0.15), rgba(255, 42, 42, 0.05));
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(255, 42, 42, 0.3);
+  background: linear-gradient(135deg, rgba(255, 42, 42, 0.12), rgba(255, 42, 42, 0.04));
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 42, 42, 0.25);
   color: var(--accent-alert);
   font-weight: 700;
   font-size: 10px;
@@ -319,17 +348,16 @@ body {
 }
 
 .dossier-body {
-  padding: 12px;
+  padding: 10px;
 }
 
 .dossier-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  padding-bottom: 6px;
-  font-size: 11px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding-bottom: 5px;
 }
 
 .dossier-row:last-child {
@@ -339,19 +367,21 @@ body {
 
 .dossier-label { 
   color: var(--text-dim); 
-  font-size: 9px; 
+  font-size: 8px; 
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  flex-shrink: 0;
 }
 
 .dossier-data { 
   color: var(--text-main); 
   font-weight: 600;
-  font-size: 11px;
+  font-size: 10px;
   text-align: right;
-  max-width: 160px;
+  max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .btn-action {
@@ -360,13 +390,13 @@ body {
   border: none;
   color: #000;
   font-weight: 700;
-  padding: 10px;
+  padding: 8px;
   margin-top: 8px;
   cursor: pointer;
   text-transform: uppercase;
   font-family: inherit;
-  font-size: 10px;
-  letter-spacing: 1px;
+  font-size: 9px;
+  letter-spacing: 0.5px;
   border-radius: 4px;
   transition: all 0.2s ease;
 }
@@ -376,66 +406,13 @@ body {
   box-shadow: 0 4px 15px rgba(0, 242, 255, 0.4);
 }
 
-@keyframes slideInSmooth {
-  from { 
-    transform: translateX(30px) scale(0.95); 
-    opacity: 0; 
-  }
-  to { 
-    transform: translateX(0) scale(1); 
-    opacity: 1; 
-  }
+/* ===========================================
+   SCANNING CARD
+   =========================================== */
+.scanning-card {
+  z-index: 1001;
 }
 
-/* --- LOADING STATE --- */
-.loading-overlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: var(--accent-cyan);
-  font-size: 10px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
-
-/* --- ANIMATIONS --- */
-@keyframes blinker { 
-  50% { opacity: 0; } 
-}
-
-@keyframes slideIn { 
-  from { transform: translateX(20px); opacity: 0; } 
-  to { transform: translateX(0); opacity: 1; } 
-}
-
-@keyframes alertPulse {
-  0%, 100% { box-shadow: 0 0 5px rgba(255, 42, 42, 0.1); }
-  50% { box-shadow: 0 0 20px rgba(255, 42, 42, 0.3); }
-}
-
-/* --- RESPONSIVE --- */
-@media (max-width: 768px) {
-  .main-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-  }
-  
-  .intel-panel {
-    border-right: none;
-    border-bottom: 1px solid var(--border-dim);
-    max-height: 300px;
-    overflow-y: auto;
-  }
-  
-  .dossier-card {
-    width: calc(100% - 40px);
-    right: 20px;
-    left: 20px;
-  }
-}
-
-/* --- SPINNER ANIMATION --- */
 .spinner {
   width: 12px;
   height: 12px;
@@ -445,10 +422,69 @@ body {
   animation: spin 1s ease-in-out infinite;
 }
 
+/* ===========================================
+   ANIMATIONS
+   =========================================== */
+@keyframes blinker { 
+  50% { opacity: 0; } 
+}
+
+@keyframes slideInSmooth {
+  from { 
+    transform: translateX(20px) scale(0.98); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateX(0) scale(1); 
+    opacity: 1; 
+  }
+}
+
+@keyframes alertPulse {
+  0%, 100% { box-shadow: 0 0 5px rgba(255, 42, 42, 0.1); }
+  50% { box-shadow: 0 0 20px rgba(255, 42, 42, 0.3); }
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-.scanning-card {
-  z-index: 1001; /* Slightly higher than dossier card to appear during scan */
+/* ===========================================
+   RESPONSIVE
+   =========================================== */
+@media (max-width: 900px) {
+  .main-grid {
+    grid-template-columns: 280px 1fr;
+  }
+  
+  .dossier-card {
+    width: 250px;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  
+  .intel-panel {
+    border-right: none;
+    border-bottom: 1px solid var(--border-dim);
+    max-height: 280px;
+  }
+  
+  .dossier-card {
+    width: calc(100% - 30px);
+    max-width: 320px;
+    right: 15px;
+  }
+  
+  .brand-section {
+    gap: 8px;
+  }
+  
+  .mission-tag {
+    display: none;
+  }
 }
