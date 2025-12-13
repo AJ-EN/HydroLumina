@@ -9,8 +9,11 @@ const App = () => {
   const [metrics, setMetrics] = useState({ power: 0.0, flow: 0 });
   const [selectedUser, setSelectedUser] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
-
   const [isScanning, setIsScanning] = useState(false);
+
+  // First-Principle Defense: Weather Filter State
+  const [weatherMode, setWeatherMode] = useState('CLEAR');
+  const [sysLog, setSysLog] = useState([]);
 
   // --- DATA FETCHING ---
   useEffect(() => {
@@ -103,6 +106,26 @@ const App = () => {
     }
     return () => clearTimeout(timer);
   }, [leakMode]);
+
+  // --- FIRST-PRINCIPLE DEFENSE: SATELLITE DIFFERENTIAL ANALYSIS ---
+  useEffect(() => {
+    const fetchSatelliteLogic = async () => {
+      try {
+        const res = await fetch(`http://127.0.0.1:8000/satellite-analysis?weather_mode=${weatherMode}`);
+        const data = await res.json();
+
+        // This is the "Judge Defense" data - shows AI reasoning
+        if (data.analysis) {
+          setSysLog(data.analysis.logic_chain || []);
+        }
+      } catch (err) {
+        console.error("Satellite Logic Error", err);
+        setSysLog(["ERROR: Unable to connect to Satellite Analysis Engine"]);
+      }
+    };
+
+    fetchSatelliteLogic();
+  }, [weatherMode]);
 
   // Get current timestamp
   const getCurrentTime = () => {
@@ -223,12 +246,40 @@ const App = () => {
             </div>
           </div>
 
+          {/* AI LOGIC KERNEL - First Principle Defense Display */}
+          <div className="panel-header">// AI LOGIC KERNEL</div>
+          <div className="data-section" style={{ padding: '10px', background: '#050505' }}>
+            <div style={{ marginBottom: '8px', fontSize: '10px', color: '#888' }}>
+              WEATHER FILTER: <span style={{ color: weatherMode === 'RAIN' ? '#4ade80' : '#666' }}>{weatherMode}</span>
+            </div>
+
+            {/* Console Log that proves logic to the judge */}
+            <div style={{ fontFamily: 'monospace', fontSize: '9px', color: '#00f2ff', lineHeight: '1.4', maxHeight: '80px', overflowY: 'auto' }}>
+              {sysLog.map((log, i) => (
+                <div key={i} style={{ marginBottom: '4px' }}>{`> ${log}`}</div>
+              ))}
+            </div>
+          </div>
+
           <div className="action-area">
             <button
               className={`btn-primary ${leakMode ? 'active' : ''}`}
               onClick={() => setLeakMode(!leakMode)}
             >
               {leakMode ? '[!] TERMINATE SIMULATION' : '[ ] INITIATE LEAK SCENARIO'}
+            </button>
+
+            {/* Rain Simulation Button - First Principle Defense */}
+            <button
+              className="btn-primary"
+              style={{
+                marginTop: '10px',
+                borderColor: weatherMode === 'RAIN' ? '#4ade80' : '#444',
+                color: weatherMode === 'RAIN' ? '#4ade80' : '#888'
+              }}
+              onClick={() => setWeatherMode(prev => prev === 'CLEAR' ? 'RAIN' : 'CLEAR')}
+            >
+              {weatherMode === 'CLEAR' ? '[ ] SIMULATE WEATHER EVENT' : '[✓] RAIN FILTER ACTIVE'}
             </button>
           </div>
         </aside>

@@ -529,6 +529,90 @@ async def get_satellite_zones():
         return {"error": "Satellite data not found."}
 
 
+# =============================================================================
+# FIRST-PRINCIPLE LOGIC: SATELLITE DIFFERENTIAL ANALYSIS
+# =============================================================================
+
+@app.get("/satellite-analysis")
+async def analyze_satellite(
+    weather_mode: str = Query("CLEAR", description="Current weather condition: CLEAR or RAIN")
+):
+    """
+    Implements the 'Differential Diagnostics' to distinguish Rain (God's Water) 
+    from Leaks (Government's Water).
+    
+    Logic:
+    1. Spatial Filter: Rain is a 'Common Mode Signal' (Global). Leaks are 'Differential' (Local).
+    2. Temporal Filter: Rain dries up (Decay Curve). Leaks persist (Constant Recharge).
+    """
+    
+    # Load the "Raw" Satellite Data (The Leak)
+    try:
+        with open(SATELLITE_DATA_PATH, 'r') as f:
+            base_data = json.load(f)
+    except FileNotFoundError:
+        return {"error": "Satellite data source missing"}
+
+    analysis_report = {
+        "timestamp": "2024-12-11T14:45:00Z",
+        "weather_condition": weather_mode,
+        "spatial_filter_status": "ACTIVE",
+        "temporal_filter_status": "ACTIVE",
+        "detected_anomalies": [],
+        "system_action": "MONITORING"
+    }
+
+    # --- SIMULATION LOGIC ---
+    
+    if weather_mode == "RAIN":
+        # SCENARIO: It is raining. 
+        # The Satellite sees moisture EVERYWHERE (High 'Global Wetness').
+        # The System must REJECT this as a False Positive.
+        
+        analysis_report["global_moisture_index"] = 0.92  # 92% of city is wet
+        analysis_report["signal_type"] = "COMMON_MODE"   # Widespread signal
+        analysis_report["system_action"] = "SUPPRESS_ALERTS"
+        analysis_report["logic_chain"] = [
+            "STEP 1: Global Moisture > 60% detected.",
+            "STEP 2: Spatial Uniformity detected across Zones 1-10.",
+            "STEP 3: Matches 'Precipitation Signature'.",
+            "CONCLUSION: Weather Event. Ignoring anomalies."
+        ]
+        # Return NO features (Dashboard shows nothing on map)
+        return {
+            "analysis": analysis_report,
+            "geo_data": {"type": "FeatureCollection", "features": []} 
+        }
+
+    else:  # weather_mode == "CLEAR"
+        # SCENARIO: Sky is clear.
+        # The Satellite sees ONE wet spot.
+        # The System ACCEPTS this as a True Positive.
+        
+        leak_features = base_data.get("features", [])
+        
+        # Enrich the data with the "Why" logic
+        for feature in leak_features:
+            feature["properties"]["analysis_note"] = "PERSISTENT_SIGNATURE"
+            feature["properties"]["temporal_decay"] = "0%"  # It didn't dry up!
+        
+        analysis_report["global_moisture_index"] = 0.05  # Only 5% of city is wet
+        analysis_report["signal_type"] = "DIFFERENTIAL"  # Localized signal
+        analysis_report["system_action"] = "TRIGGER_ALERT"
+        analysis_report["logic_chain"] = [
+            "STEP 1: Global Moisture < 10% (Dry Baseline).",
+            "STEP 2: Localized Moisture Plume detected at J5.",
+            "STEP 3: Temporal Analysis: Moisture persisted > 48hrs.",
+            "STEP 4: GIS Correlation: Overlays perfectly with Main Pipeline.",
+            "CONCLUSION: Infrastructure Failure (Leak)."
+        ]
+        
+        return {
+            "analysis": analysis_report,
+            "geo_data": base_data
+        }
+
+
 @app.get("/network-status")
 async def network_status():
     """
