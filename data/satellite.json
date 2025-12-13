@@ -8,10 +8,19 @@
         "description": "Soil moisture anomaly detected - possible underground water leak",
         "satellite": "NISAR",
         "band": "L-Band",
+        "frequency": "1.25 GHz",
+        "wavelength": "24 cm",
+        "penetration_depth": "25 cm",
+        "polarization": "Quad-Pol (HH, HV, VH, VV)",
+        "revisit_time": "12 days",
+        "resolution": "3-10 m",
         "moisture_index": 0.87,
+        "dielectric_constant": 25.4,
+        "backscatter_db": -8.2,
         "confidence": "HIGH",
         "detection_time": "2024-12-11T14:30:00Z",
-        "severity": "CRITICAL"
+        "severity": "CRITICAL",
+        "algorithm": "Change Detection (Pre/Post Analysis)"
       },
       "geometry": {
         "type": "Polygon",
@@ -33,10 +42,17 @@
         "description": "Minor moisture elevation detected",
         "satellite": "NISAR",
         "band": "L-Band",
+        "frequency": "1.25 GHz",
+        "wavelength": "24 cm",
+        "penetration_depth": "25 cm",
+        "polarization": "HH+HV",
         "moisture_index": 0.62,
+        "dielectric_constant": 18.7,
+        "backscatter_db": -12.5,
         "confidence": "MEDIUM",
         "detection_time": "2024-12-11T14:30:00Z",
-        "severity": "WARNING"
+        "severity": "WARNING",
+        "algorithm": "Threshold-based Anomaly Detection"
       },
       "geometry": {
         "type": "Polygon",
@@ -58,12 +74,27 @@
         "description": "Junction J5 - Primary suspected leak location",
         "node_id": "J5",
         "pressure_drop": "23%",
-        "water_loss_estimate": "450 L/hr"
+        "water_loss_estimate": "450 L/hr",
+        "pipe_diameter_mm": 200,
+        "pipe_material": "DI (Ductile Iron)",
+        "installation_year": 2008,
+        "last_inspection": "2023-06-15",
+        "wntr_pressure_psi": 12.5,
+        "correlation_source": "NILM + SAR Fusion"
       },
       "geometry": {
         "type": "Point",
         "coordinates": [75.7833, 26.9144]
       }
     }
-  ]
+  ],
+  "metadata": {
+    "mission": "NASA-ISRO Synthetic Aperture Radar (NISAR)",
+    "launch_date": "2024",
+    "orbit": "Sun-synchronous, 747 km altitude",
+    "swath_width": "240 km",
+    "data_latency": "24-48 hours",
+    "ground_segment": "ISRO Hyderabad + JPL Pasadena",
+    "processing_level": "L2 (Geocoded, Calibrated)"
+  }
 }

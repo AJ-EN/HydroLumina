@@ -1,27 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import './App.css';
 
-function App() {
+const App = () => {
   const [leakMode, setLeakMode] = useState(false);
   const [chartData, setChartData] = useState([]);
-  const [metrics, setMetrics] = useState({ power: 0, flow: 0 });
+  const [metrics, setMetrics] = useState({ power: 0.0, flow: 0 });
   const [selectedUser, setSelectedUser] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
 
-  // Poll Backend for Data
+  // --- DATA FETCHING ---
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Fetch from FastAPI
         const res = await fetch(`http://127.0.0.1:8000/analyze-energy?simulate_leak=${leakMode}`);
         const data = await res.json();
-        setChartData(data);
 
-        // Update "Live" metrics (taking the latest relevant point)
-        // If leak mode is on, we look for the spike area
-        const latest = leakMode
-          ? data.find(d => d.is_anomaly) || data[data.length - 1]
-          : data[data.length - 1];
+        setIsConnected(true);
 
+        // Slice data to keep chart clean (last 50 points)
+        const recentData = data.slice(-50);
+        setChartData(recentData);
+
+        // Update HUD Metrics
+        const latest = recentData[recentData.length - 1];
         if (latest) {
           setMetrics({
             power: latest.power_kw,
@@ -29,126 +32,218 @@ function App() {
           });
         }
       } catch (err) {
-        console.error("Backend Error:", err);
+        setIsConnected(false);
+        console.warn("Backend Disconnected. Running in Offline HUD Mode.");
       }
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 3000); // Update every 3s
+    const interval = setInterval(fetchData, 2000);
     return () => clearInterval(interval);
   }, [leakMode]);
 
-  // Handle User Click Simulation (For Demo)
-  // In a real Kepler app, you'd listen to map events. 
-  // For hackathon speed, we toggle the card when Leak Mode is active.
+  // --- INTERACTION SIMULATION ---
   useEffect(() => {
     if (leakMode) {
-      setTimeout(() => {
+      // Delay the "Intelligence Find" to make it feel like a search
+      const timer = setTimeout(() => {
         setSelectedUser({
-          id: "1093-4821-9921",
-          name: "Rameshwar Lal",
-          family: 6,
-          status: "CRITICAL (Low Pressure)"
+          id: "JA-1093-4821",
+          name: "RAMESHWAR LAL",
+          location: "ZONE_4_SECTOR_B",
+          status: "CRITICAL_PRESSURE_DROP",
+          last_update: "T-MINUS 00:02:00",
+          family_members: 6,
+          water_usage: "450 L/DAY"
         });
-      }, 2000); // Show card 2s after leak trigger
+      }, 1500);
+      return () => clearTimeout(timer);
     } else {
       setSelectedUser(null);
     }
   }, [leakMode]);
 
+  // Get current timestamp
+  const getCurrentTime = () => {
+    const now = new Date();
+    return now.toLocaleTimeString('en-US', { hour12: false });
+  };
+
   return (
-    <div className="dashboard-container">
-      {/* SIDEBAR */}
-      <div className="sidebar">
-        <div className="header">
-          <h1 className="title">HYDRO-LUMINA</h1>
-          <span className="subtitle">Rajasthan Water Governance Grid</span>
+    <div className="app-container">
+
+      {/* TOP COMMAND BAR */}
+      <header className="top-bar">
+        <div className="brand-section">
+          <span className="brand-title">HYDRO<span style={{ color: 'var(--accent-cyan)' }}>LUMINA</span></span>
+          <span className="mission-tag">OP: WATER_SECURITY</span>
+          <span className="mission-tag">LOC: JAIPUR_GRID</span>
         </div>
-
-        {/* METRICS */}
-        <div className="metric-card">
-          <span className="metric-label">Grid Load (NILM)</span>
-          <div className="metric-value power-val">
-            {metrics.power.toFixed(1)} <span className="value-unit">kW</span>
-          </div>
+        <div className="status-indicator">
+          <span>SYS: {isConnected ? 'ONLINE' : 'OFFLINE'}</span>
+          <span style={{ margin: '0 10px' }}>|</span>
+          <span>STATUS: {leakMode ? <span style={{ color: 'var(--accent-alert)' }}>ALERT</span> : <span style={{ color: 'var(--accent-cyan)' }}>OPTIMAL</span>}</span>
+          <div className="blink" style={{ backgroundColor: leakMode ? 'var(--accent-alert)' : 'var(--accent-cyan)' }}></div>
         </div>
+      </header>
 
-        <div className="metric-card">
-          <span className="metric-label">Water Flow (Calc)</span>
-          <div className="metric-value water-val">
-            {metrics.flow.toFixed(0)} <span className="value-unit">LPM</span>
-          </div>
-        </div>
+      <div className="main-grid">
 
-        {/* CHART */}
-        <div style={{ height: '200px', width: '100%', marginTop: '20px' }}>
-          <span className="metric-label">Real-time Analysis</span>
-          <ResponsiveContainer>
-            <LineChart data={chartData}>
-              <XAxis dataKey="time" hide />
-              <YAxis hide />
-              <Tooltip
-                contentStyle={{ background: '#000', border: '1px solid #333' }}
-                itemStyle={{ fontSize: '12px' }}
-              />
-              <Line type="monotone" dataKey="power_kw" stroke="#facc15" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="flow_lpm" stroke="#3b82f6" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        {/* LEFT INTELLIGENCE PANEL */}
+        <aside className="intel-panel">
 
-        {/* CONTROL */}
-        <div className="control-panel">
-          <button
-            className={`leak-btn ${leakMode ? 'alert' : 'normal'}`}
-            onClick={() => setLeakMode(!leakMode)}
-          >
-            {leakMode ? '⚠ LEAK DETECTED' : 'SYSTEM NORMAL'}
-          </button>
-        </div>
-      </div>
+          <div className="panel-header">// REAL-TIME TELEMETRY</div>
 
-      {/* MAP AREA */}
-      <div className="map-container">
-        <iframe
-          title="Kepler Map"
-          src="/map.html"
-          className="kepler-frame"
-        />
-
-        {/* JAN AADHAAR OVERLAY */}
-        {selectedUser && (
-          <div className="jan-aadhaar-card">
-            <div className="ja-header">
-              <span className="ja-logo">JAN AADHAAR</span>
-              <span style={{ color: 'red' }}>⚠ ALERT</span>
+          <div className="data-section">
+            <div className="metric-row">
+              <span className="metric-label">GRID_LOAD [NILM]</span>
+              <span className="metric-label">{getCurrentTime()}</span>
             </div>
-            <div className="ja-body">
-              <div className="ja-row">
-                <span className="ja-label">ID Number</span>
-                <span className="ja-data">{selectedUser.id}</span>
-              </div>
-              <div className="ja-row">
-                <span className="ja-label">Head of Family</span>
-                <span className="ja-data">{selectedUser.name}</span>
-              </div>
-              <div className="ja-row">
-                <span className="ja-label">Members</span>
-                <span className="ja-data">{selectedUser.family}</span>
-              </div>
-              <div className="ja-row">
-                <span className="ja-label">Status</span>
-                <span className="ja-data" style={{ color: '#facc15' }}>{selectedUser.status}</span>
-              </div>
-              <button className="action-btn">
-                INITIATE DBT REFUND
-              </button>
+            <span className="metric-value-lg" style={{ color: 'var(--accent-amber)' }}>
+              {metrics.power.toFixed(1)} <span className="metric-unit">kW</span>
+            </span>
+          </div>
+
+          <div className="data-section">
+            <div className="metric-row">
+              <span className="metric-label">WATER_FLOW [CALC]</span>
+            </div>
+            <span className="metric-value-lg" style={{ color: 'var(--accent-cyan)' }}>
+              {metrics.flow} <span className="metric-unit">LPM</span>
+            </span>
+
+            {/* HUD CHART */}
+            <div className="chart-container">
+              <ResponsiveContainer width="100%" height={140} minHeight={140}>
+                <LineChart data={chartData}>
+                  <Line
+                    type="step"
+                    dataKey="flow_lpm"
+                    stroke="var(--accent-cyan)"
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                  <Line
+                    type="step"
+                    dataKey="power_kw"
+                    stroke="var(--accent-amber)"
+                    strokeWidth={1}
+                    dot={false}
+                    isAnimationActive={false}
+                    opacity={0.5}
+                  />
+                  <XAxis hide />
+                  <YAxis hide domain={['auto', 'auto']} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'rgba(0,0,0,0.9)',
+                      border: '1px solid #333',
+                      color: '#fff',
+                      fontFamily: 'JetBrains Mono',
+                      fontSize: '10px'
+                    }}
+                    labelStyle={{ color: '#888' }}
+                    itemStyle={{ fontSize: '10px' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div style={{ fontSize: '9px', color: '#444', marginTop: '5px', textAlign: 'right' }}>
+              T-MINUS 1HR WINDOW
             </div>
           </div>
-        )}
+
+          <div className="panel-header">// SENSOR NETWORK</div>
+          <div className="data-section" style={{ flex: 1 }}>
+            <div className="metric-row">
+              <span className="metric-label">ISRO_NISAR_LINK</span>
+              <span style={{ color: leakMode ? 'var(--accent-cyan)' : '#444' }}>
+                {leakMode ? 'ACTIVE' : 'STANDBY'}
+              </span>
+            </div>
+            <div className="metric-row">
+              <span className="metric-label">JAN_AADHAAR_DB</span>
+              <span style={{ color: 'var(--accent-cyan)' }}>CONNECTED</span>
+            </div>
+            <div className="metric-row">
+              <span className="metric-label">BACKEND_API</span>
+              <span style={{ color: isConnected ? 'var(--accent-cyan)' : 'var(--accent-alert)' }}>
+                {isConnected ? 'CONNECTED' : 'DISCONNECTED'}
+              </span>
+            </div>
+            <div className="metric-row">
+              <span className="metric-label">PUMP_STATIONS</span>
+              <span style={{ color: 'var(--accent-cyan)' }}>3 ONLINE</span>
+            </div>
+          </div>
+
+          <div className="action-area">
+            <button
+              className={`btn-primary ${leakMode ? 'active' : ''}`}
+              onClick={() => setLeakMode(!leakMode)}
+            >
+              {leakMode ? '[!] TERMINATE SIMULATION' : '[ ] INITIATE LEAK SCENARIO'}
+            </button>
+          </div>
+        </aside>
+
+        {/* MAP VIEWPORT */}
+        <main className="viewport">
+          <iframe
+            src="/map.html"
+            title="Kepler Map"
+            className="map-frame"
+          />
+
+          {/* INTELLIGENCE DOSSIER (Overlay) */}
+          {selectedUser && (
+            <div className="dossier-card">
+              <div className="dossier-header">
+                <span>// PRIORITY ALERT DETECTED</span>
+                <span style={{ fontSize: '10px' }}>Lv.1 CRITICAL</span>
+              </div>
+              <div className="dossier-body">
+                <div className="dossier-row">
+                  <span className="dossier-label">SUBJECT_NAME</span>
+                  <span className="dossier-data">{selectedUser.name}</span>
+                </div>
+                <div className="dossier-row">
+                  <span className="dossier-label">JAN_AADHAAR_ID</span>
+                  <span className="dossier-data">{selectedUser.id}</span>
+                </div>
+                <div className="dossier-row">
+                  <span className="dossier-label">SECTOR</span>
+                  <span className="dossier-data">{selectedUser.location}</span>
+                </div>
+                <div className="dossier-row">
+                  <span className="dossier-label">FAMILY_SIZE</span>
+                  <span className="dossier-data">{selectedUser.family_members} MEMBERS</span>
+                </div>
+                <div className="dossier-row">
+                  <span className="dossier-label">AVG_USAGE</span>
+                  <span className="dossier-data">{selectedUser.water_usage}</span>
+                </div>
+                <div className="dossier-row">
+                  <span className="dossier-label">STATUS</span>
+                  <span className="dossier-data" style={{ color: 'var(--accent-alert)' }}>
+                    {selectedUser.status}
+                  </span>
+                </div>
+                <div className="dossier-row">
+                  <span className="dossier-label">LAST_UPDATE</span>
+                  <span className="dossier-data">{selectedUser.last_update}</span>
+                </div>
+                <button className="btn-action">
+                  AUTHORIZE DBT REFUND PROTOCOL
+                </button>
+              </div>
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );
-}
+};
 
 export default App;
