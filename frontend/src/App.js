@@ -42,26 +42,52 @@ const App = () => {
     return () => clearInterval(interval);
   }, [leakMode]);
 
-  // --- INTERACTION SIMULATION ---
+  // --- DYNAMIC USER FETCH (GIS-Based Selection) ---
   useEffect(() => {
     if (leakMode) {
-      // Delay the "Intelligence Find" to make it feel like a search
-      const timer = setTimeout(() => {
-        setSelectedUser({
-          id: "JA-1093-4821",
-          name: "RAMESHWAR LAL",
-          location: "ZONE_4_SECTOR_B",
-          status: "CRITICAL_PRESSURE_DROP",
-          last_update: "T-MINUS 00:02:00",
-          family_members: 6,
-          water_usage: "450 L/DAY",
-          // BSR (Basic Schedule of Rates) Integration
-          bsr_code: "PHED-2024-Item-4.2",
-          bsr_description: "Pipe Repair > 100mm DI",
-          est_cost: "₹ 12,450",
-          contractor: "L&T Civil (Auto-Assigned)",
-          repair_priority: "P1 - IMMEDIATE"
-        });
+      // Delay to simulate "Intelligence Find" scanning animation
+      const timer = setTimeout(async () => {
+        try {
+          // Fetch affected user from backend (uses Haversine distance from satellite.json)
+          const res = await fetch('http://127.0.0.1:8000/affected-user');
+          const userData = await res.json();
+
+          setSelectedUser({
+            id: userData.id,
+            name: userData.name,
+            location: userData.location,
+            locality: userData.locality,
+            coordinates: userData.coordinates,
+            distance_to_leak_km: userData.distance_to_leak_km,
+            status: userData.status,
+            last_update: userData.last_update,
+            family_members: userData.family_members,
+            water_usage: userData.water_usage,
+            // BSR (Basic Schedule of Rates) from backend
+            bsr_code: userData.bsr_code,
+            bsr_description: userData.bsr_description,
+            est_cost: userData.est_cost,
+            contractor: userData.contractor,
+            repair_priority: userData.repair_priority
+          });
+        } catch (err) {
+          console.warn("Failed to fetch affected user, using fallback");
+          // Fallback for offline mode
+          setSelectedUser({
+            id: "JA-OFFLINE",
+            name: "DEMO USER",
+            location: "ZONE_4_SECTOR_B",
+            status: "CRITICAL_PRESSURE_DROP",
+            last_update: "T-MINUS 00:02:00",
+            family_members: 4,
+            water_usage: "350 L/DAY",
+            bsr_code: "PHED-2024-Item-4.2",
+            bsr_description: "Pipe Repair > 100mm DI",
+            est_cost: "₹ 12,475",
+            contractor: "L&T Civil (Auto-Assigned)",
+            repair_priority: "P1 - IMMEDIATE"
+          });
+        }
       }, 1500);
       return () => clearTimeout(timer);
     } else {
@@ -237,6 +263,33 @@ const App = () => {
                     {selectedUser.status}
                   </span>
                 </div>
+
+                {/* GIS COORDINATES (Proves we use real spatial data) */}
+                {selectedUser.coordinates && (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '6px',
+                    background: 'rgba(0,242,255,0.05)',
+                    borderLeft: '2px solid var(--accent-cyan)',
+                    fontSize: '9px'
+                  }}>
+                    <div style={{ color: 'var(--accent-cyan)', marginBottom: '4px' }}>
+                      {/* GIS CORRELATION DATA */}
+                    </div>
+                    <div className="dossier-row">
+                      <span className="dossier-label">COORDS</span>
+                      <span className="dossier-data" style={{ fontSize: '9px', fontFamily: 'monospace' }}>
+                        {selectedUser.coordinates.lat.toFixed(4)}, {selectedUser.coordinates.lon.toFixed(4)}
+                      </span>
+                    </div>
+                    <div className="dossier-row">
+                      <span className="dossier-label">LEAK_DIST</span>
+                      <span className="dossier-data" style={{ color: 'var(--accent-alert)' }}>
+                        {selectedUser.distance_to_leak_km} km
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 {/* BSR COST ESTIMATION SECTION */}
                 <div style={{
