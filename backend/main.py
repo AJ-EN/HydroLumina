@@ -188,6 +188,10 @@ def calculate_water_flow(power_kw: float, leak_mode: bool = False) -> dict:
     tank_state["level_m"] = max(0.5, min(tank_state["max_level_m"], 
                                           tank_state["level_m"] + delta))
     
+    # AUTO-RESET: Prevent "Low Pressure" during demos - reset tank if too low
+    if tank_state["level_m"] < 2.0:
+        tank_state["level_m"] = 8.0  # Reset to safe level for demo stability
+    
     # Convert to LPM for frontend
     flow_lpm = int(flow_lps * 60)
     
