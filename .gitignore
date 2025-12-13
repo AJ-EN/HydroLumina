@@ -16,6 +16,9 @@ build/
 .coverage
 htmlcov/
 
+# Include main backend file
+!backend/main.py
+
 # =========================
 # Node.js (Frontend)
 # =========================
