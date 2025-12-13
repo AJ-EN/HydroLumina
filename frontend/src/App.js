@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import MapView from './components/MapView';
 import './App.css';
 
 const App = () => {
@@ -8,6 +9,8 @@ const App = () => {
   const [metrics, setMetrics] = useState({ power: 0.0, flow: 0 });
   const [selectedUser, setSelectedUser] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+
+  const [isScanning, setIsScanning] = useState(false);
 
   // --- DATA FETCHING ---
   useEffect(() => {
@@ -44,12 +47,15 @@ const App = () => {
 
   // --- DYNAMIC USER FETCH (GIS-Based Selection) ---
   useEffect(() => {
+    let timer;
     if (leakMode) {
+      setIsScanning(true);
       // Delay to simulate "Intelligence Find" scanning animation
-      const timer = setTimeout(async () => {
+      timer = setTimeout(async () => {
         try {
           // Fetch affected user from backend (uses Haversine distance from satellite.json)
           const res = await fetch('http://127.0.0.1:8000/affected-user');
+          if (!res.ok) throw new Error("Failed to fetch");
           const userData = await res.json();
 
           setSelectedUser({
@@ -71,7 +77,7 @@ const App = () => {
             repair_priority: userData.repair_priority
           });
         } catch (err) {
-          console.warn("Failed to fetch affected user, using fallback");
+          console.warn("Failed to fetch affected user, using fallback", err);
           // Fallback for offline mode
           setSelectedUser({
             id: "JA-OFFLINE",
@@ -87,12 +93,15 @@ const App = () => {
             contractor: "L&T Civil (Auto-Assigned)",
             repair_priority: "P1 - IMMEDIATE"
           });
+        } finally {
+          setIsScanning(false);
         }
       }, 1500);
-      return () => clearTimeout(timer);
     } else {
       setSelectedUser(null);
+      setIsScanning(false);
     }
+    return () => clearTimeout(timer);
   }, [leakMode]);
 
   // Get current timestamp
@@ -226,12 +235,31 @@ const App = () => {
 
         {/* MAP VIEWPORT */}
         <main className="viewport">
-          <iframe
-            src={leakMode ? "/map_leak.html" : "/map_normal.html"}
-            title="Kepler Map"
-            className="map-frame"
-            key={leakMode ? 'leak' : 'normal'}  // Force re-render on mode change
+          <MapView
+            leakMode={leakMode}
+            onUserSelect={(user) => {
+              // Direct map click → dossier update
+              setSelectedUser(user);
+            }}
           />
+
+          {/* SCANNING INDICATOR */}
+          {isScanning && !selectedUser && (
+            <div className={`dossier-card scanning-card`}>
+              <div className="dossier-header">
+                <span>// SCANNING NETWORK</span>
+                <div className="spinner"></div>
+              </div>
+              <div className="dossier-body" style={{ textAlign: 'center', padding: '30px' }}>
+                <div style={{ color: 'var(--accent-cyan)', marginBottom: '10px' }}>
+                  TRIANGULATING LEAK SOURCE...
+                </div>
+                <div style={{ fontSize: '10px', color: '#666' }}>
+                  CORRELATING SATELLITE DATA WITH GIS
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* INTELLIGENCE DOSSIER (Overlay) */}
           {selectedUser && (

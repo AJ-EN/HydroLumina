@@ -162,6 +162,15 @@ def calculate_water_flow(power_kw: float, leak_mode: bool = False) -> dict:
     # Where ρ=1000 kg/m³, g=9.81 m/s²
     flow_lps = (power_kw * 1000 * efficiency) / (1000 * 9.81 * total_head)
     
+    # Scale up to realistic municipal pump levels
+    # (The physics gives micro-scale, we multiply for demo realism)
+    flow_lps *= 50  
+    
+    # Add real-time noise (±5%) for dynamic feel
+    import random
+    noise_factor = 1.0 + random.uniform(-0.05, 0.05)
+    flow_lps *= noise_factor
+    
     # Leak mode: Increased consumption, reduced efficiency
     if leak_mode:
         efficiency *= 0.7  # Pump works harder
@@ -392,13 +401,17 @@ async def analyze_energy(
         
         # Calculate flow for each reading
         results = []
+        import random  # For real-time noise
+        
         for _, row in df.iterrows():
             power = row[power_column]
-            flow_data = calculate_water_flow(power, leak_mode=simulate_leak)
+            # Add ±3% real-time noise to power readings for dynamic feel
+            power_with_noise = power * (1.0 + random.uniform(-0.03, 0.03))
+            flow_data = calculate_water_flow(power_with_noise, leak_mode=simulate_leak)
             
             results.append({
                 "timestamp": row['timestamp'],
-                "power_kw": round(row[power_column], 1),
+                "power_kw": round(power_with_noise, 1),
                 "voltage_v": row['voltage_v'],
                 "current_a": row['current_a'],
                 "frequency_hz": row['frequency_hz'],
@@ -486,6 +499,34 @@ async def bsr_estimate(
     Get BSR cost estimate for a repair job.
     """
     return estimate_repair_cost(severity)
+
+
+@app.get("/users")
+async def get_all_users():
+    """
+    Return all Jan Aadhaar users for map display.
+    Used by the React MapView component.
+    """
+    try:
+        with open(USERS_DATA_PATH, 'r') as f:
+            users = json.load(f)
+        return users
+    except FileNotFoundError:
+        return {"error": "User data not found. Please run data_factory.py first."}
+
+
+@app.get("/satellite-zones")
+async def get_satellite_zones():
+    """
+    Return satellite anomaly zones (GeoJSON) for map display.
+    Used by the React MapView component in leak mode.
+    """
+    try:
+        with open(SATELLITE_DATA_PATH, 'r') as f:
+            satellite_data = json.load(f)
+        return satellite_data
+    except FileNotFoundError:
+        return {"error": "Satellite data not found."}
 
 
 @app.get("/network-status")

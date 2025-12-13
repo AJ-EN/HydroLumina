@@ -200,9 +200,31 @@ body {
   width: 100%;
   height: 100%;
   border: none;
-  opacity: 0.8; /* Dim map for data visibility */
-  filter: contrast(1.2) grayscale(0.2);
 }
+
+/* MapView container fills viewport */
+.viewport > div {
+  width: 100%;
+  height: 100%;
+}
+
+/* Leaflet specific overrides */
+.leaflet-container {
+  background: #0a0a0a !important;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.leaflet-control-attribution {
+  font-size: 9px !important;
+  opacity: 0.5;
+  background: rgba(0,0,0,0.7) !important;
+  color: #666 !important;
+}
+
+.leaflet-control-attribution a {
+  color: #888 !important;
+}
+
 
 /* --- SCANLINE OVERLAY --- */
 .viewport::before {
@@ -226,16 +248,34 @@ body {
 /* --- INTELLIGENCE DOSSIER (THE CARD) --- */
 .dossier-card {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 340px;
-  background: rgba(10, 10, 10, 0.95);
-  border: 1px solid var(--border-bright);
-  backdrop-filter: blur(10px);
+  top: 15px;
+  right: 15px;
+  width: 300px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  background: rgba(8, 8, 12, 0.88);
+  border: 1px solid rgba(255, 42, 42, 0.3);
+  border-radius: 8px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   padding: 0;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  animation: slideIn 0.3s ease-out;
-  z-index: 10;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+    0 0 40px rgba(255, 42, 42, 0.1);
+  animation: slideInSmooth 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1000;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 42, 42, 0.3) transparent;
+}
+
+.dossier-card::-webkit-scrollbar {
+  width: 4px;
+}
+
+.dossier-card::-webkit-scrollbar-thumb {
+  background: rgba(255, 42, 42, 0.4);
+  border-radius: 2px;
 }
 
 /* Blueprint corners for dossier */
@@ -243,9 +283,10 @@ body {
 .dossier-card::after {
   content: "";
   position: absolute;
-  width: 15px;
-  height: 15px;
+  width: 12px;
+  height: 12px;
   border: 1px solid var(--accent-alert);
+  pointer-events: none;
 }
 
 .dossier-card::before {
@@ -253,6 +294,7 @@ body {
   left: -1px;
   border-right: none;
   border-bottom: none;
+  border-radius: 8px 0 0 0;
 }
 
 .dossier-card::after {
@@ -260,51 +302,89 @@ body {
   right: -1px;
   border-left: none;
   border-top: none;
+  border-radius: 0 0 8px 0;
 }
 
 .dossier-header {
-  background: rgba(255, 42, 42, 0.1);
-  padding: 10px 15px;
-  border-bottom: 1px solid var(--accent-alert);
+  background: linear-gradient(135deg, rgba(255, 42, 42, 0.15), rgba(255, 42, 42, 0.05));
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 42, 42, 0.3);
   color: var(--accent-alert);
   font-weight: 700;
+  font-size: 10px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-radius: 8px 8px 0 0;
 }
 
 .dossier-body {
-  padding: 15px;
+  padding: 12px;
 }
 
 .dossier-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #1a1a1a;
-  padding-bottom: 4px;
+  align-items: center;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 6px;
+  font-size: 11px;
 }
 
-.dossier-label { color: var(--text-dim); font-size: 10px; }
-.dossier-data { color: var(--text-main); font-weight: 700; }
+.dossier-row:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.dossier-label { 
+  color: var(--text-dim); 
+  font-size: 9px; 
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dossier-data { 
+  color: var(--text-main); 
+  font-weight: 600;
+  font-size: 11px;
+  text-align: right;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .btn-action {
   width: 100%;
-  background: var(--accent-cyan);
+  background: linear-gradient(135deg, var(--accent-cyan), #00bcd4);
   border: none;
   color: #000;
   font-weight: 700;
   padding: 10px;
-  margin-top: 10px;
+  margin-top: 8px;
   cursor: pointer;
   text-transform: uppercase;
   font-family: inherit;
+  font-size: 10px;
   letter-spacing: 1px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
 }
 
 .btn-action:hover { 
-  opacity: 0.9; 
-  box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(0, 242, 255, 0.4);
+}
+
+@keyframes slideInSmooth {
+  from { 
+    transform: translateX(30px) scale(0.95); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateX(0) scale(1); 
+    opacity: 1; 
+  }
 }
 
 /* --- LOADING STATE --- */
@@ -353,4 +433,22 @@ body {
     right: 20px;
     left: 20px;
   }
+}
+
+/* --- SPINNER ANIMATION --- */
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(0, 242, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--accent-cyan);
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.scanning-card {
+  z-index: 1001; /* Slightly higher than dossier card to appear during scan */
 }
