@@ -10,14 +10,34 @@ const App = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // First-Principle Defense: Weather Filter State
   const [weatherMode, setWeatherMode] = useState('CLEAR');
   const [sysLog, setSysLog] = useState([]);
 
+  // --- KEYBOARD SHORTCUTS ---
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Ignore if typing in an input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      if (e.key.toLowerCase() === 'l') {
+        setLeakMode(prev => !prev);
+      }
+      if (e.key.toLowerCase() === 'w') {
+        setWeatherMode(prev => prev === 'CLEAR' ? 'RAIN' : 'CLEAR');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
   // --- DATA FETCHING ---
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
       try {
         // Fetch from FastAPI
         const res = await fetch(`http://127.0.0.1:8000/analyze-energy?simulate_leak=${leakMode}`);
@@ -40,6 +60,8 @@ const App = () => {
       } catch (err) {
         setIsConnected(false);
         console.warn("Backend Disconnected. Running in Offline HUD Mode.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -137,7 +159,7 @@ const App = () => {
     <div className="app-container">
 
       {/* TOP COMMAND BAR */}
-      <header className="top-bar">
+      <header className={`top-bar ${leakMode ? 'alert-mode' : ''}`}>
         <div className="brand-section">
           <span className="brand-title">HYDRO<span style={{ color: 'var(--accent-cyan)' }}>LUMINA</span></span>
           <span className="mission-tag">OP: WATER_SECURITY</span>
@@ -217,6 +239,17 @@ const App = () => {
                 </LineChart>
               </ResponsiveContainer>
             </div>
+            {/* CHART LEGEND */}
+            <div className="chart-legend">
+              <div className="legend-item">
+                <div className="legend-color flow"></div>
+                <span>FLOW (LPM)</span>
+              </div>
+              <div className="legend-item">
+                <div className="legend-color power"></div>
+                <span>POWER (kW)</span>
+              </div>
+            </div>
             <div style={{ fontSize: '9px', color: '#444', marginTop: '5px', textAlign: 'right' }}>
               T-MINUS 1HR WINDOW
             </div>
@@ -244,6 +277,15 @@ const App = () => {
               <span className="metric-label">PUMP_STATIONS</span>
               <span style={{ color: 'var(--accent-cyan)' }}>3 ONLINE</span>
             </div>
+
+            {/* OFFLINE STATE */}
+            {!isConnected && !isLoading && (
+              <div className="offline-state">
+                <div className="offline-icon">⚠</div>
+                <div className="offline-title">SYSTEM OFFLINE</div>
+                <div className="offline-subtitle">BACKEND CONNECTION LOST</div>
+              </div>
+            )}
           </div>
 
           {/* AI LOGIC KERNEL - First Principle Defense Display */}
@@ -281,6 +323,13 @@ const App = () => {
             >
               {weatherMode === 'CLEAR' ? '[ ] SIMULATE WEATHER EVENT' : '[✓] RAIN FILTER ACTIVE'}
             </button>
+
+            {/* KEYBOARD HINTS */}
+            <div className="kbd-hint">
+              <kbd className="kbd">L</kbd> Toggle Leak
+              <span style={{ margin: '0 6px' }}>|</span>
+              <kbd className="kbd">W</kbd> Weather
+            </div>
           </div>
         </aside>
 
@@ -360,7 +409,7 @@ const App = () => {
                     <div className="dossier-row">
                       <span className="dossier-label">COORDS</span>
                       <span className="dossier-data" style={{ fontSize: '9px', fontFamily: 'monospace' }}>
-                        {selectedUser.coordinates.lat.toFixed(4)}, {selectedUser.coordinates.lon.toFixed(4)}
+                        {selectedUser.coordinates?.lat?.toFixed?.(4) ?? 'N/A'}, {selectedUser.coordinates?.lon?.toFixed?.(4) ?? 'N/A'}
                       </span>
                     </div>
                     <div className="dossier-row">

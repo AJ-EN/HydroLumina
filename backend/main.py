@@ -14,6 +14,7 @@ Technical Notes:
   - Tank state is noted as single-worker limitation (Redis for production)
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
@@ -24,11 +25,40 @@ from sklearn.ensemble import IsolationForest
 import networkx as nx
 import json
 import math
+import random
+
+
+# =============================================================================
+# LIFESPAN CONTEXT MANAGER (Modern FastAPI pattern)
+# =============================================================================
+
+@asynccontextmanager
+async def lifespan(app):
+    """
+    Modern lifespan context manager for FastAPI (replaces deprecated @app.on_event).
+    Handles startup and shutdown events.
+    """
+    # Startup
+    if anomaly_model is None:
+        initialize_model()
+    print("\n" + "="*60)
+    print("🚀 HYDROLUMINA API READY")
+    print("="*60)
+    print(f"   Model Status: {'✅ Loaded' if anomaly_model else '❌ Not Loaded'}")
+    print(f"   Leak Location: ({leak_location['lat']}, {leak_location['lon']})")
+    print("="*60 + "\n")
+    
+    yield  # Server runs here
+    
+    # Shutdown (if needed)
+    print("\n🛑 HYDROLUMINA API SHUTTING DOWN...\n")
+
 
 app = FastAPI(
     title="HydroLumina API",
     description="Water Distribution Monitoring System - Backend Intelligence",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS Configuration - Allow frontend access
@@ -171,7 +201,6 @@ def calculate_water_flow(power_kw: float, leak_mode: bool = False) -> dict:
     flow_lps *= 50  
     
     # Add real-time noise (±5%) for dynamic feel
-    import random
     noise_factor = 1.0 + random.uniform(-0.05, 0.05)
     flow_lps *= noise_factor
     
@@ -433,7 +462,6 @@ async def analyze_energy(
         
         # Calculate flow for each reading
         results = []
-        import random  # For real-time noise
         
         for _, row in df.iterrows():
             power = row[power_column]
@@ -508,7 +536,7 @@ async def get_affected_user(
             "leak_coordinates": leak_location,
             "status": "CRITICAL_PRESSURE_DROP",
             "last_update": "T-MINUS 00:02:00",
-            "family_members": np.random.randint(3, 8),
+            "family_members": (hash(affected_user["id"]) % 5) + 3,  # Deterministic 3-7 members based on ID
             "water_usage": f"{int(affected_user['avg_daily_usage_liters'])} L/DAY",
             "phone": affected_user["phone"],
             **bsr_data,
@@ -851,20 +879,8 @@ async def network_status():
 # STARTUP EVENT (FastAPI lifespan)
 # =============================================================================
 
-@app.on_event("startup")
-async def startup_event():
-    """
-    Called when the FastAPI application starts.
-    Re-initializes model if not already loaded.
-    """
-    if anomaly_model is None:
-        initialize_model()
-    print("\n" + "="*60)
-    print("🚀 HYDROLUMINA API READY")
-    print("="*60)
-    print(f"   Model Status: {'✅ Loaded' if anomaly_model else '❌ Not Loaded'}")
-    print(f"   Leak Location: ({leak_location['lat']}, {leak_location['lon']})")
-    print("="*60 + "\n")
+# Note: Using lifespan context manager instead of deprecated @app.on_event
+# The lifespan is defined below and passed to FastAPI constructor
 
 
 # =============================================================================

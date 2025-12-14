@@ -227,7 +227,7 @@ const MapView = ({ leakMode, onUserSelect }) => {
                 {/* PIPE NETWORK - Enhanced Visualization */}
                 {pipeNetwork && pipeNetwork.features?.length > 0 && (
                     <GeoJSON
-                        key={`pipes-${leakMode}-${Date.now()}`}
+                        key={`pipes-${leakMode}`}
                         data={pipeNetwork}
                         style={pipeStyle}
                         onEachFeature={(feature, layer) => {
@@ -280,6 +280,10 @@ const MapView = ({ leakMode, onUserSelect }) => {
 
                 {/* INFRASTRUCTURE NODES - Reservoir, Pump, Tank, Junction */}
                 {infraNodes.map((node, index) => {
+                    // Null check for malformed data
+                    if (!node?.properties || !node?.geometry?.coordinates) {
+                        return null;
+                    }
                     const props = node.properties;
                     const coords = node.geometry.coordinates;
 

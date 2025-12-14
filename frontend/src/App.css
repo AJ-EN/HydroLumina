@@ -488,3 +488,240 @@ body {
     display: none;
   }
 }
+
+/* ===========================================
+   SKELETON LOADING STATES
+   =========================================== */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-panel) 25%,
+    #1a1a1a 50%,
+    var(--bg-panel) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-text {
+  height: 20px;
+  width: 80%;
+  margin-bottom: 8px;
+}
+
+.skeleton-value {
+  height: 32px;
+  width: 60%;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ===========================================
+   GLITCH/STATIC EFFECT
+   =========================================== */
+.glitch-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0%,
+    rgba(0, 242, 255, 0.03) 1px,
+    transparent 2px
+  );
+  animation: glitch-scan 0.1s infinite linear;
+  pointer-events: none;
+  z-index: 10;
+}
+
+@keyframes glitch-scan {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(4px); }
+}
+
+/* ===========================================
+   OFFLINE/EMPTY STATE
+   =========================================== */
+.offline-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  text-align: center;
+  position: relative;
+}
+
+.offline-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  animation: flicker 2s infinite;
+}
+
+.offline-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-alert);
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+
+.offline-subtitle {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+  52% { opacity: 1; }
+  54% { opacity: 0.3; }
+  56% { opacity: 1; }
+}
+
+/* ===========================================
+   BUTTON RIPPLE EFFECT
+   =========================================== */
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+}
+
+.btn-primary:active::after {
+  width: 300px;
+  height: 300px;
+}
+
+/* ===========================================
+   STATUS BAR GLOW ANIMATION
+   =========================================== */
+.top-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.top-bar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent-cyan) 50%,
+    transparent 100%
+  );
+  animation: scan-line 3s ease-in-out infinite;
+}
+
+@keyframes scan-line {
+  0%, 100% { transform: translateX(-100%); opacity: 0; }
+  50% { transform: translateX(100%); opacity: 1; }
+}
+
+/* Alert mode status bar */
+.top-bar.alert-mode::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent-alert) 50%,
+    transparent 100%
+  );
+}
+
+/* ===========================================
+   KEYBOARD HINT BADGES
+   =========================================== */
+.kbd-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  background: #111;
+  border: 1px solid var(--border-dim);
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 9px;
+  color: var(--text-main);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* ===========================================
+   CHART LEGEND
+   =========================================== */
+.chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 8px;
+  font-size: 9px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-dim);
+}
+
+.legend-color {
+  width: 12px;
+  height: 3px;
+  border-radius: 1px;
+}
+
+.legend-color.flow {
+  background: var(--accent-cyan);
+}
+
+.legend-color.power {
+  background: var(--accent-amber);
+  opacity: 0.5;
+}
+
+/* ===========================================
+   DATA SECTION LOADING STATE
+   =========================================== */
+.data-section.loading {
+  position: relative;
+}
+
+.data-section.loading::before {
+  content: 'ACQUIRING...';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  color: var(--accent-cyan);
+  letter-spacing: 1px;
+  animation: blinker 1s linear infinite;
+}
