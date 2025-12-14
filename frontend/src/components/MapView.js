@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { MapContainer, TileLayer, GeoJSON, CircleMarker, Marker, Popup, useMap } from 'react-leaflet';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { MapContainer, TileLayer, GeoJSON, CircleMarker, Marker, Popup, useMap, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -87,6 +87,28 @@ const MapView = ({ leakMode, onUserSelect }) => {
     const [leakLocation, setLeakLocation] = useState(null);
     const [pipeNetwork, setPipeNetwork] = useState(null);
     const [infraNodes, setInfraNodes] = useState([]);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const mapContainerRef = useRef(null);
+
+    // Fullscreen toggle handler
+    const toggleFullscreen = useCallback(() => {
+        if (!document.fullscreenElement) {
+            mapContainerRef.current?.requestFullscreen();
+            setIsFullscreen(true);
+        } else {
+            document.exitFullscreen();
+            setIsFullscreen(false);
+        }
+    }, []);
+
+    // Listen for fullscreen changes
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
 
     // Fetch Static Data on Load
     useEffect(() => {
@@ -210,7 +232,33 @@ const MapView = ({ leakMode, onUserSelect }) => {
     }, [onUserSelect, leakMode, leakLocation]);
 
     return (
-        <div style={{ width: '100%', height: '100%' }}>
+        <div ref={mapContainerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
+            {/* FULLSCREEN TOGGLE BUTTON */}
+            <button
+                onClick={toggleFullscreen}
+                style={{
+                    position: 'absolute',
+                    top: '10px',
+                    left: '10px',
+                    zIndex: 1000,
+                    background: 'rgba(10, 10, 10, 0.9)',
+                    border: '1px solid #333',
+                    borderRadius: '4px',
+                    padding: '8px 12px',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontSize: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={e => e.target.style.borderColor = '#00f2ff'}
+                onMouseLeave={e => e.target.style.borderColor = '#333'}
+            >
+                {isFullscreen ? '⛶ EXIT' : '⛶ FULLSCREEN'}
+            </button>
             <MapContainer
                 center={[26.9124, 75.7873]}
                 zoom={14}
@@ -357,19 +405,55 @@ const MapView = ({ leakMode, onUserSelect }) => {
                     />
                 )}
 
-                {/* LEAK POINT MARKER */}
+                {/* LEAK POINT MARKER WITH PULSE RINGS */}
                 {leakMode && leakLocation && (
-                    <Marker position={[leakLocation.lat, leakLocation.lon]} icon={leakIcon}>
-                        <Popup>
-                            <div style={{ fontFamily: 'JetBrains Mono', fontSize: '11px' }}>
-                                <strong style={{ color: '#ff2a2a' }}>LEAK DETECTED</strong><br />
-                                {leakLocation.properties?.name || 'Junction J5'}<br />
-                                <span style={{ color: '#888' }}>
-                                    {leakLocation.lat.toFixed(4)}, {leakLocation.lon.toFixed(4)}
-                                </span>
-                            </div>
-                        </Popup>
-                    </Marker>
+                    <>
+                        {/* Sonar Pulse Rings */}
+                        <Circle
+                            center={[leakLocation.lat, leakLocation.lon]}
+                            radius={150}
+                            pathOptions={{
+                                color: '#ff2a2a',
+                                fillColor: 'transparent',
+                                weight: 2,
+                                opacity: 0.6,
+                                className: 'pulse-ring pulse-ring-1'
+                            }}
+                        />
+                        <Circle
+                            center={[leakLocation.lat, leakLocation.lon]}
+                            radius={300}
+                            pathOptions={{
+                                color: '#ff2a2a',
+                                fillColor: 'transparent',
+                                weight: 1.5,
+                                opacity: 0.4,
+                                className: 'pulse-ring pulse-ring-2'
+                            }}
+                        />
+                        <Circle
+                            center={[leakLocation.lat, leakLocation.lon]}
+                            radius={500}
+                            pathOptions={{
+                                color: '#ff2a2a',
+                                fillColor: 'transparent',
+                                weight: 1,
+                                opacity: 0.2,
+                                className: 'pulse-ring pulse-ring-3'
+                            }}
+                        />
+                        <Marker position={[leakLocation.lat, leakLocation.lon]} icon={leakIcon}>
+                            <Popup>
+                                <div style={{ fontFamily: 'JetBrains Mono', fontSize: '11px' }}>
+                                    <strong style={{ color: '#ff2a2a' }}>LEAK DETECTED</strong><br />
+                                    {leakLocation.properties?.name || 'Junction J5'}<br />
+                                    <span style={{ color: '#888' }}>
+                                        {leakLocation.lat.toFixed(4)}, {leakLocation.lon.toFixed(4)}
+                                    </span>
+                                </div>
+                            </Popup>
+                        </Marker>
+                    </>
                 )}
 
                 {/* JAN AADHAAR USERS */}
@@ -409,6 +493,17 @@ const MapView = ({ leakMode, onUserSelect }) => {
                     0% { stroke-dashoffset: 24; }
                     100% { stroke-dashoffset: 0; }
                 }
+                
+                /* Sonar pulse ring animations */
+                @keyframes sonarPulse {
+                    0% { transform: scale(0.8); opacity: 0.8; }
+                    50% { opacity: 0.4; }
+                    100% { transform: scale(1.2); opacity: 0; }
+                }
+                .pulse-ring-1 { animation: sonarPulse 2s ease-out infinite; }
+                .pulse-ring-2 { animation: sonarPulse 2s ease-out infinite 0.4s; }
+                .pulse-ring-3 { animation: sonarPulse 2s ease-out infinite 0.8s; }
+                
                 .leak-marker, .infra-node { background: transparent; border: none; }
                 
                 /* Pipe animations */
